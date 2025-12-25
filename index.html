@@ -3,33 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Frostgrid Sudoku</title>
+  <title>Glacier Grid Sudoku</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <!-- INTRO -->
-  <section id="screenIntro" class="screen intro active">
-    <button id="btnStart" class="btn primary big">Start Challenge</button>
+  <section id="intro" class="screen intro active">
+    <button id="startBtn" class="btn primary big">Start Challenge</button>
   </section>
 
   <!-- TITLE -->
-  <section id="screenTitle" class="screen title">
+  <section id="title" class="screen title">
     <div class="card">
-      <h1>Frostgrid Sudoku</h1>
+      <h1>Glacier Grid Sudoku</h1>
       <p class="sub">
-        A calm mind cuts through the cold. Fill every row, column, and 3×3 box with 1–9—no repeats.
+        Fill each row, column, and 3×3 box with 1–9. No repeats. Medium difficulty.
       </p>
-      <div class="rules">
-        <div class="rule"><b>Difficulty:</b> Medium</div>
-        <div class="rule"><b>Controls:</b> Tap cells + keypad</div>
-      </div>
-      <button id="btnPlay" class="btn primary">Play Game</button>
+      <button id="playBtn" class="btn primary">Play Game</button>
     </div>
   </section>
 
   <!-- GAME -->
-  <section id="screenGame" class="screen game">
+  <section id="game" class="screen game">
     <header class="topbar">
       <div class="pill">
         <div class="label">Status</div>
@@ -37,8 +33,8 @@
       </div>
 
       <div class="actions">
-        <button id="btnNew" class="btn ghost">New Puzzle</button>
-        <button id="btnReset" class="btn ghost">Reset</button>
+        <button id="newBtn" class="btn ghost">New Puzzle</button>
+        <button id="resetBtn" class="btn ghost">Reset</button>
       </div>
     </header>
 
@@ -46,25 +42,21 @@
       <div class="panel">
         <div id="board" class="board" aria-label="Sudoku board"></div>
 
-        <div class="pad">
-          <div class="padRow">
-            <button class="padBtn" data-num="1">1</button>
-            <button class="padBtn" data-num="2">2</button>
-            <button class="padBtn" data-num="3">3</button>
-            <button class="padBtn" data-num="4">4</button>
-            <button class="padBtn" data-num="5">5</button>
-          </div>
-          <div class="padRow">
-            <button class="padBtn" data-num="6">6</button>
-            <button class="padBtn" data-num="7">7</button>
-            <button class="padBtn" data-num="8">8</button>
-            <button class="padBtn" data-num="9">9</button>
-            <button id="btnErase" class="padBtn erase">⌫</button>
-          </div>
+        <div class="pad" aria-label="Number pad">
+          <button class="padBtn" data-n="1">1</button>
+          <button class="padBtn" data-n="2">2</button>
+          <button class="padBtn" data-n="3">3</button>
+          <button class="padBtn" data-n="4">4</button>
+          <button class="padBtn" data-n="5">5</button>
+          <button class="padBtn" data-n="6">6</button>
+          <button class="padBtn" data-n="7">7</button>
+          <button class="padBtn" data-n="8">8</button>
+          <button class="padBtn" data-n="9">9</button>
+          <button id="eraseBtn" class="padBtn erase">⌫</button>
         </div>
 
         <div class="tiny">
-          Tip: On desktop you can type 1–9, Backspace to erase, and use arrow keys to move.
+          Desktop: type 1–9, Backspace deletes, arrow keys move.
         </div>
       </div>
     </main>
@@ -78,13 +70,13 @@
 
       <div class="codeBox">
         <div class="codeLabel">PASSCODE</div>
-        <div class="codeValue">GIFTSGIVENINWAITING</div>
+        <div class="codeValue" id="codeValue">GIFTSGIVENINWAITING</div>
       </div>
 
       <div class="modalBtns">
-        <button id="btnCopy" class="btn primary">Copy Code</button>
-        <button id="btnBackTitle" class="btn ghost">Back to Title</button>
-        <button id="btnPlayAgain" class="btn ghost">New Puzzle</button>
+        <button id="copyBtn" class="btn primary">Copy Code</button>
+        <button id="backTitleBtn" class="btn ghost">Back to Title</button>
+        <button id="playAgainBtn" class="btn ghost">New Puzzle</button>
       </div>
 
       <div id="copyMsg" class="copyMsg"></div>
