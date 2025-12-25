@@ -4,41 +4,250 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Glacier Grid Sudoku</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    :root{
+      --bg:#07080d;
+      --ink:#eef2ff;
+      --line:rgba(255,255,255,.12);
+      --shadow:0 18px 70px rgba(0,0,0,.55);
+      --gold:#ffbf3a;
+      --ok:#7cffa1;
+      --bad:#ff6b6b;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ width:100%; height:100%; margin:0; padding:0; }
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--ink);
+      background: radial-gradient(900px 600px at 55% 10%, #1a2f7a 0%, var(--bg) 60%, #02030a 100%);
+      overflow-x:hidden;
+    }
+
+    /* Screens */
+    .screen{
+      display:none;
+      min-height:100vh;
+      width:100vw;
+      padding:18px;
+    }
+    .screen.active{ display:flex; }
+    .center{ align-items:center; justify-content:center; }
+    .intro{ background:#000; }
+
+    /* Buttons */
+    .btn{
+      border:0;
+      border-radius:16px;
+      padding:12px 14px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      color:#201600;
+      background: linear-gradient(180deg, var(--gold), rgba(255,191,58,.70));
+    }
+    .btn.ghost{
+      color:var(--ink);
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+    }
+    .btn.big{
+      padding:16px 18px;
+      font-size:1.05rem;
+      box-shadow: var(--shadow);
+    }
+
+    /* Title Card */
+    .card{
+      width:min(760px, 94vw);
+      border-radius:22px;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.18));
+      border:1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding:22px;
+      backdrop-filter: blur(10px);
+    }
+    h1{ margin:0 0 10px; font-size: clamp(2.1rem, 4.8vw, 3.2rem); }
+    .sub{ margin:0 0 14px; color: rgba(255,255,255,.88); line-height:1.35; }
+
+    /* Game Layout */
+    .gameWrap{ width:100%; display:flex; flex-direction:column; }
+    .topbar{
+      position: sticky;
+      top:0;
+      z-index:10;
+      width:100%;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding:12px;
+      padding-top: calc(12px + env(safe-area-inset-top));
+      padding-left: calc(12px + env(safe-area-inset-left));
+      padding-right: calc(12px + env(safe-area-inset-right));
+      background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.05));
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .pill{
+      min-width: 180px;
+      padding:10px 12px;
+      border-radius:16px;
+      background: rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .label{ color: rgba(255,255,255,.70); font-size:.85rem; font-weight:900; }
+    .value{ margin-top:2px; font-weight:1000; color:rgba(255,255,255,.92); }
+    .actions{ display:flex; gap:8px; flex-wrap:wrap; }
+
+    .panel{
+      width:min(760px, 96vw);
+      margin: 16px auto 0;
+      border-radius:22px;
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding:16px;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Sudoku */
+    .board{
+      width: min(92vw, 560px);
+      margin: 0 auto;
+      display:grid;
+      grid-template-columns: repeat(9, 1fr);
+      border-radius:18px;
+      overflow:hidden;
+      border:2px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.20);
+    }
+    .cell{
+      aspect-ratio: 1 / 1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 1100;
+      font-size: clamp(1.0rem, 4.2vw, 1.45rem);
+      border-right:1px solid rgba(255,255,255,.10);
+      border-bottom:1px solid rgba(255,255,255,.10);
+      user-select:none;
+      cursor:pointer;
+      position:relative;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cell:nth-child(9n){ border-right:none; }
+    .cell.fixed{
+      cursor: default;
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+    }
+    .cell.editable{
+      background: rgba(0,0,0,.10);
+      color: rgba(255,255,255,.96);
+    }
+    .cell.selected{
+      outline:3px solid rgba(255,191,58,.75);
+      z-index: 2;
+    }
+    .cell.same{ background: rgba(255,191,58,.12); }
+    .cell.conflict{ background: rgba(255,107,107,.20); }
+
+    .cell.thickR{ border-right:2px solid rgba(255,255,255,.18); }
+    .cell.thickB{ border-bottom:2px solid rgba(255,255,255,.18); }
+
+    /* Keypad */
+    .pad{
+      width: min(92vw, 560px);
+      margin: 14px auto 0;
+      display:grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap:10px;
+    }
+    .padBtn{
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.20);
+      color: rgba(255,255,255,.95);
+      font-weight:1100;
+      font-size:1.15rem;
+      padding:14px 0;
+      cursor:pointer;
+      touch-action: manipulation;
+    }
+    .padBtn:active{ transform: translateY(1px); }
+    .padBtn.erase{ background: rgba(255,255,255,.08); }
+    .tiny{ margin-top: 10px; color: rgba(255,255,255,.72); text-align:center; }
+
+    /* Modal */
+    .modal{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:#000;
+      z-index:9999;
+    }
+    .modal.show{ display:flex; }
+    .modalBox{
+      width:min(560px, 92vw);
+      border-radius:22px;
+      background:#0b1020;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow: var(--shadow);
+      padding:18px;
+    }
+    .modalBtns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+
+    .codeBox{
+      margin-top:12px;
+      border-radius:16px;
+      background:#060914;
+      border:1px solid rgba(255,255,255,.14);
+      padding:12px;
+    }
+    .codeLabel{ color: rgba(255,255,255,.70); font-size:.85rem; }
+    .codeValue{ margin-top:6px; font-size:1.15rem; font-weight:1100; letter-spacing:1.2px; }
+    .copyMsg{ margin-top:10px; color: rgba(255,255,255,.82); }
+
+    /* Ensure no weird "raw page" spacing if something fails */
+    button{ font: inherit; }
+  </style>
 </head>
+
 <body>
 
   <!-- INTRO -->
-  <section id="intro" class="screen intro active">
+  <section id="intro" class="screen intro center active">
     <button id="startBtn" class="btn primary big">Start Challenge</button>
   </section>
 
   <!-- TITLE -->
-  <section id="title" class="screen title">
+  <section id="title" class="screen center">
     <div class="card">
       <h1>Glacier Grid Sudoku</h1>
-      <p class="sub">
-        Fill each row, column, and 3×3 box with 1–9. No repeats. Medium difficulty.
-      </p>
+      <p class="sub">Fill each row, column, and 3×3 box with 1–9. No repeats. Medium difficulty.</p>
       <button id="playBtn" class="btn primary">Play Game</button>
     </div>
   </section>
 
   <!-- GAME -->
-  <section id="game" class="screen game">
-    <header class="topbar">
-      <div class="pill">
-        <div class="label">Status</div>
-        <div id="status" class="value">Select a cell.</div>
-      </div>
+  <section id="game" class="screen" style="padding:0;">
+    <div class="gameWrap">
+      <header class="topbar">
+        <div class="pill">
+          <div class="label">Status</div>
+          <div id="status" class="value">Select a cell.</div>
+        </div>
+        <div class="actions">
+          <button id="newBtn" class="btn ghost">New Puzzle</button>
+          <button id="resetBtn" class="btn ghost">Reset</button>
+        </div>
+      </header>
 
-      <div class="actions">
-        <button id="newBtn" class="btn ghost">New Puzzle</button>
-        <button id="resetBtn" class="btn ghost">Reset</button>
-      </div>
-    </header>
-
-    <main class="wrap">
       <div class="panel">
         <div id="board" class="board" aria-label="Sudoku board"></div>
 
@@ -55,11 +264,9 @@
           <button id="eraseBtn" class="padBtn erase">⌫</button>
         </div>
 
-        <div class="tiny">
-          Desktop: type 1–9, Backspace deletes, arrow keys move.
-        </div>
+        <div class="tiny">Desktop: type 1–9, Backspace deletes, arrow keys move.</div>
       </div>
-    </main>
+    </div>
   </section>
 
   <!-- WIN MODAL -->
@@ -83,6 +290,342 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script>
+    "use strict";
+
+    const PASSCODE = "GIFTSGIVENINWAITING";
+
+    /* DOM */
+    const intro = document.getElementById("intro");
+    const title = document.getElementById("title");
+    const game  = document.getElementById("game");
+
+    const startBtn = document.getElementById("startBtn");
+    const playBtn  = document.getElementById("playBtn");
+    const newBtn   = document.getElementById("newBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    const boardEl  = document.getElementById("board");
+    const statusEl = document.getElementById("status");
+
+    const eraseBtn = document.getElementById("eraseBtn");
+    const padBtns  = Array.from(document.querySelectorAll(".padBtn[data-n]"));
+
+    const winModal = document.getElementById("winModal");
+    const copyBtn  = document.getElementById("copyBtn");
+    const backTitleBtn = document.getElementById("backTitleBtn");
+    const playAgainBtn = document.getElementById("playAgainBtn");
+    const copyMsg  = document.getElementById("copyMsg");
+
+    /* State */
+    let solution = Array(81).fill(0);
+    let puzzleStart = Array(81).fill(0);
+    let grid = Array(81).fill(0);
+    let fixed = Array(81).fill(false);
+    let selected = -1;
+
+    /* Screens */
+    function showScreen(s){
+      hideWin();
+      [intro,title,game].forEach(x => x.classList.remove("active"));
+      s.classList.add("active");
+      // prevent accidental scroll jump on iOS
+      window.scrollTo(0,0);
+    }
+
+    function setStatus(msg, kind=""){
+      statusEl.textContent = msg;
+      statusEl.style.color =
+        kind === "ok" ? "rgba(124,255,161,.95)" :
+        kind === "bad" ? "rgba(255,107,107,.95)" :
+        "rgba(255,255,255,.92)";
+    }
+
+    /* Modal */
+    function showWin(){
+      winModal.classList.add("show");
+      winModal.setAttribute("aria-hidden","false");
+    }
+    function hideWin(){
+      winModal.classList.remove("show");
+      winModal.setAttribute("aria-hidden","true");
+      copyMsg.textContent = "";
+    }
+
+    /* Sudoku helpers */
+    function randInt(n){ return Math.floor(Math.random() * n); }
+    function shuffled(arr){
+      const a = arr.slice();
+      for(let i=a.length-1;i>0;i--){
+        const j = randInt(i+1);
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+    function rcToIdx(r,c){ return r*9 + c; }
+    function idxToRC(i){ return {r: Math.floor(i/9), c: i%9}; }
+
+    function isValid(board, idx, val){
+      const {r,c} = idxToRC(idx);
+
+      for(let cc=0; cc<9; cc++){
+        const j = rcToIdx(r,cc);
+        if(j !== idx && board[j] === val) return false;
+      }
+      for(let rr=0; rr<9; rr++){
+        const j = rcToIdx(rr,c);
+        if(j !== idx && board[j] === val) return false;
+      }
+      const br = Math.floor(r/3)*3;
+      const bc = Math.floor(c/3)*3;
+      for(let rr=br; rr<br+3; rr++){
+        for(let cc=bc; cc<bc+3; cc++){
+          const j = rcToIdx(rr,cc);
+          if(j !== idx && board[j] === val) return false;
+        }
+      }
+      return true;
+    }
+
+    function solve(board){
+      let empty = -1;
+      for(let i=0;i<81;i++){
+        if(board[i] === 0){ empty = i; break; }
+      }
+      if(empty === -1) return true;
+
+      const nums = shuffled([1,2,3,4,5,6,7,8,9]);
+      for(const v of nums){
+        if(isValid(board, empty, v)){
+          board[empty] = v;
+          if(solve(board)) return true;
+          board[empty] = 0;
+        }
+      }
+      return false;
+    }
+
+    function generateNewMedium(){
+      hideWin();
+
+      const b = Array(81).fill(0);
+      solve(b);
+      solution = b.slice();
+
+      // Medium: remove ~46 cells
+      const toRemove = 46;
+      const p = solution.slice();
+      const indices = shuffled([...Array(81)].map((_,i)=>i));
+      for(let k=0;k<toRemove;k++){
+        p[indices[k]] = 0;
+      }
+
+      puzzleStart = p.slice();
+      grid = p.slice();
+      fixed = grid.map(v => v !== 0);
+      selected = -1;
+
+      setStatus("Select a cell.", "");
+      render();
+    }
+
+    function findConflicts(board){
+      const bad = new Set();
+
+      // rows
+      for(let r=0;r<9;r++){
+        const seen = new Map();
+        for(let c=0;c<9;c++){
+          const i = rcToIdx(r,c);
+          const v = board[i];
+          if(v === 0) continue;
+          if(!seen.has(v)) seen.set(v, []);
+          seen.get(v).push(i);
+        }
+        for(const arr of seen.values()){
+          if(arr.length > 1) arr.forEach(i => bad.add(i));
+        }
+      }
+      // cols
+      for(let c=0;c<9;c++){
+        const seen = new Map();
+        for(let r=0;r<9;r++){
+          const i = rcToIdx(r,c);
+          const v = board[i];
+          if(v === 0) continue;
+          if(!seen.has(v)) seen.set(v, []);
+          seen.get(v).push(i);
+        }
+        for(const arr of seen.values()){
+          if(arr.length > 1) arr.forEach(i => bad.add(i));
+        }
+      }
+      // boxes
+      for(let br=0;br<3;br++){
+        for(let bc=0;bc<3;bc++){
+          const seen = new Map();
+          for(let r=br*3;r<br*3+3;r++){
+            for(let c=bc*3;c<bc*3+3;c++){
+              const i = rcToIdx(r,c);
+              const v = board[i];
+              if(v === 0) continue;
+              if(!seen.has(v)) seen.set(v, []);
+              seen.get(v).push(i);
+            }
+          }
+          for(const arr of seen.values()){
+            if(arr.length > 1) arr.forEach(i => bad.add(i));
+          }
+        }
+      }
+      return bad;
+    }
+
+    function render(){
+      boardEl.innerHTML = "";
+
+      for(let i=0;i<81;i++){
+        const v = grid[i];
+        const cell = document.createElement("div");
+        cell.className = "cell " + (fixed[i] ? "fixed" : "editable");
+        cell.textContent = v === 0 ? "" : String(v);
+
+        const {r,c} = idxToRC(i);
+        if(c === 2 || c === 5) cell.classList.add("thickR");
+        if(r === 2 || r === 5) cell.classList.add("thickB");
+        if(i === selected) cell.classList.add("selected");
+
+        cell.addEventListener("click", () => selectCell(i));
+        boardEl.appendChild(cell);
+      }
+
+      applyHighlights();
+    }
+
+    function applyHighlights(){
+      const cells = Array.from(boardEl.children);
+      cells.forEach(el => el.classList.remove("same","conflict"));
+
+      if(selected >= 0){
+        const val = grid[selected];
+        if(val !== 0){
+          for(let i=0;i<81;i++){
+            if(grid[i] === val) cells[i].classList.add("same");
+          }
+        }
+      }
+
+      const bad = findConflicts(grid);
+      bad.forEach(i => cells[i].classList.add("conflict"));
+    }
+
+    function selectCell(i){
+      hideWin();
+      selected = i;
+      if(fixed[i]) setStatus("That number is fixed.", "");
+      else setStatus("Enter 1–9 or erase.", "");
+      render();
+    }
+
+    function setValue(val){
+      if(selected < 0){
+        setStatus("Select a cell first.", "bad");
+        return;
+      }
+      if(fixed[selected]){
+        setStatus("That number is fixed.", "bad");
+        return;
+      }
+      grid[selected] = val;
+      render();
+      checkWin();
+    }
+
+    function resetPuzzle(){
+      hideWin();
+      grid = puzzleStart.slice();
+      fixed = grid.map(v => v !== 0);
+      selected = -1;
+      setStatus("Reset to starting puzzle.", "");
+      render();
+    }
+
+    function checkWin(){
+      for(const v of grid) if(v === 0) return;
+
+      if(findConflicts(grid).size > 0){
+        setStatus("There are conflicts to fix.", "bad");
+        return;
+      }
+
+      for(let i=0;i<81;i++){
+        if(grid[i] !== solution[i]){
+          setStatus("Not quite — check a row/column/box.", "bad");
+          return;
+        }
+      }
+
+      setStatus("Solved!", "ok");
+      showWin();
+    }
+
+    async function copyToClipboard(text){
+      if(navigator.clipboard?.writeText){
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    }
+
+    /* Events */
+    startBtn.addEventListener("click", () => showScreen(title));
+    playBtn.addEventListener("click", () => { showScreen(game); generateNewMedium(); });
+
+    newBtn.addEventListener("click", () => generateNewMedium());
+    resetBtn.addEventListener("click", () => resetPuzzle());
+
+    padBtns.forEach(b => b.addEventListener("click", () => setValue(Number(b.dataset.n))));
+    eraseBtn.addEventListener("click", () => setValue(0));
+
+    copyBtn.addEventListener("click", async () => {
+      try{
+        const ok = await copyToClipboard(PASSCODE);
+        copyMsg.textContent = ok ? "Copied to clipboard." : "Copy failed — copy manually.";
+      }catch{
+        copyMsg.textContent = "Copy failed — copy manually.";
+      }
+    });
+
+    backTitleBtn.addEventListener("click", () => { hideWin(); showScreen(title); });
+    playAgainBtn.addEventListener("click", () => { hideWin(); generateNewMedium(); });
+
+    window.addEventListener("keydown", (e) => {
+      if(!game.classList.contains("active")) return;
+      if(winModal.classList.contains("show")) return;
+
+      const k = e.key;
+      if(k >= "1" && k <= "9"){ setValue(Number(k)); return; }
+      if(k === "Backspace" || k === "Delete"){ setValue(0); return; }
+
+      if(selected < 0) return;
+      const {r,c} = idxToRC(selected);
+      if(k === "ArrowUp" && r > 0) selectCell(rcToIdx(r-1,c));
+      if(k === "ArrowDown" && r < 8) selectCell(rcToIdx(r+1,c));
+      if(k === "ArrowLeft" && c > 0) selectCell(rcToIdx(r,c-1));
+      if(k === "ArrowRight" && c < 8) selectCell(rcToIdx(r,c+1));
+    });
+
+    /* Boot */
+    showScreen(intro);
+  </script>
 </body>
 </html>
