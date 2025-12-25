@@ -2,82 +2,41 @@
 
 const PASSCODE = "GIFTSGIVENINWAITING";
 
-/**
- * Medium sudoku set (puzzle + solution). 0 = empty.
- * Randomly chosen each game.
- */
-const PUZZLES = [
-  {
-    // Medium
-    puzzle: "530070000600195000098000060800060003400803001700020006060000280000419005000080079",
-    solution:"534678912672195348198342567859761423426853791713924856961537284287419635345286179"
-  },
-  {
-    puzzle: "009000004700009810006700000060030200000208000004070050000006500071500006300000900",
-    solution:"819265734753469812246731589567834291935218467124976358482196573971583646368427915"
-  },
-  {
-    puzzle: "000260701680070090190004500820100040004602900050003028009300074040050036703018000",
-    solution:"435269781682571493197834562826195347374682915951743628519326874248957136763418259"
-  },
-  {
-    puzzle: "200080300060070084030500209000105408000000000402706000301007040720040060004010003",
-    solution:"245986371169273584837541269673195428918324657452768931391657842728439165564812793"
-  },
-  {
-    puzzle: "000000907000420180000705026100904000050000040000507009920108000034059000507000000",
-    solution:"483651927765423189291785326176934852859216743342597619926178534834059271517342968"
-  },
-  {
-    puzzle: "100920000524010000000000070050008102000000000402700090060000000000030945000071006",
-    solution:"176923584524817639938654271753498162619235478482716395265189713817362945394571826"
-  }
-];
+/* ---------- DOM ---------- */
+const intro = document.getElementById("intro");
+const title = document.getElementById("title");
+const game  = document.getElementById("game");
 
-const screenIntro = document.getElementById("screenIntro");
-const screenTitle = document.getElementById("screenTitle");
-const screenGame  = document.getElementById("screenGame");
+const startBtn = document.getElementById("startBtn");
+const playBtn  = document.getElementById("playBtn");
 
-const btnStart = document.getElementById("btnStart");
-const btnPlay  = document.getElementById("btnPlay");
-
-const btnNew   = document.getElementById("btnNew");
-const btnReset = document.getElementById("btnReset");
+const newBtn   = document.getElementById("newBtn");
+const resetBtn = document.getElementById("resetBtn");
 
 const boardEl  = document.getElementById("board");
 const statusEl = document.getElementById("status");
 
-const padBtns  = Array.from(document.querySelectorAll(".padBtn[data-num]"));
-const btnErase = document.getElementById("btnErase");
+const eraseBtn = document.getElementById("eraseBtn");
+const padBtns  = Array.from(document.querySelectorAll(".padBtn[data-n]"));
 
 const winModal = document.getElementById("winModal");
-const btnCopy  = document.getElementById("btnCopy");
-const btnBackTitle = document.getElementById("btnBackTitle");
-const btnPlayAgain = document.getElementById("btnPlayAgain");
+const copyBtn  = document.getElementById("copyBtn");
+const backTitleBtn = document.getElementById("backTitleBtn");
+const playAgainBtn = document.getElementById("playAgainBtn");
 const copyMsg  = document.getElementById("copyMsg");
 
-// State
-let currentPuzzle = null;
-let grid = [];        // 81 chars '0'..'9'
-let fixed = [];       // boolean[81]
-let selected = -1;    // index 0..80
+/* ---------- STATE ---------- */
+let solution = Array(81).fill(0);
+let puzzleStart = Array(81).fill(0);
+let grid = Array(81).fill(0);
+let fixed = Array(81).fill(false);
+let selected = -1;
 
+/* ---------- SCREEN HELPERS ---------- */
 function showScreen(s){
-  hideModal();
-  screenIntro.classList.remove("active");
-  screenTitle.classList.remove("active");
-  screenGame.classList.remove("active");
+  hideWin();
+  [intro, title, game].forEach(x => x.classList.remove("active"));
   s.classList.add("active");
-}
-
-function showModal(){
-  winModal.classList.add("show");
-  winModal.setAttribute("aria-hidden","false");
-}
-function hideModal(){
-  winModal.classList.remove("show");
-  winModal.setAttribute("aria-hidden","true");
-  copyMsg.textContent = "";
 }
 
 function setStatus(msg, kind=""){
@@ -88,31 +47,118 @@ function setStatus(msg, kind=""){
     "rgba(255,255,255,.92)";
 }
 
-function idxToRC(i){ return { r: Math.floor(i/9), c: i%9 }; }
-function rcToIdx(r,c){ return r*9 + c; }
-function boxIndex(r,c){ return Math.floor(r/3)*3 + Math.floor(c/3); }
-
-function pickPuzzle(){
-  currentPuzzle = PUZZLES[Math.floor(Math.random() * PUZZLES.length)];
-  grid = currentPuzzle.puzzle.split("");
-  fixed = grid.map(ch => ch !== "0");
-  selected = -1;
+/* ---------- MODAL ---------- */
+function showWin(){
+  winModal.classList.add("show");
+  winModal.setAttribute("aria-hidden","false");
+}
+function hideWin(){
+  winModal.classList.remove("show");
+  winModal.setAttribute("aria-hidden","true");
+  copyMsg.textContent = "";
 }
 
+/* ---------- SUDOKU GEN (Backtracking) ---------- */
+function randInt(n){ return Math.floor(Math.random() * n); }
+
+function shuffled(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = randInt(i+1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function rcToIdx(r,c){ return r*9 + c; }
+function idxToRC(i){ return {r: Math.floor(i/9), c: i%9}; }
+
+function isValid(board, idx, val){
+  const {r,c} = idxToRC(idx);
+
+  // row
+  for(let cc=0; cc<9; cc++){
+    const j = rcToIdx(r,cc);
+    if(j !== idx && board[j] === val) return false;
+  }
+  // col
+  for(let rr=0; rr<9; rr++){
+    const j = rcToIdx(rr,c);
+    if(j !== idx && board[j] === val) return false;
+  }
+  // box
+  const br = Math.floor(r/3)*3;
+  const bc = Math.floor(c/3)*3;
+  for(let rr=br; rr<br+3; rr++){
+    for(let cc=bc; cc<bc+3; cc++){
+      const j = rcToIdx(rr,cc);
+      if(j !== idx && board[j] === val) return false;
+    }
+  }
+  return true;
+}
+
+function solve(board){
+  // find empty
+  let empty = -1;
+  for(let i=0;i<81;i++){
+    if(board[i] === 0){ empty = i; break; }
+  }
+  if(empty === -1) return true;
+
+  const nums = shuffled([1,2,3,4,5,6,7,8,9]);
+  for(const v of nums){
+    if(isValid(board, empty, v)){
+      board[empty] = v;
+      if(solve(board)) return true;
+      board[empty] = 0;
+    }
+  }
+  return false;
+}
+
+function generateNewMedium(){
+  // 1) create solved grid
+  const b = Array(81).fill(0);
+  solve(b);
+  solution = b.slice();
+
+  // 2) remove values for medium
+  // Medium-ish: remove ~45-50 cells. We'll do 46.
+  const toRemove = 46;
+  const p = solution.slice();
+  const indices = shuffled([...Array(81)].map((_,i)=>i));
+
+  let removed = 0;
+  for(const i of indices){
+    if(removed >= toRemove) break;
+    p[i] = 0;
+    removed++;
+  }
+
+  puzzleStart = p.slice();
+  grid = p.slice();
+  fixed = grid.map(v => v !== 0);
+  selected = -1;
+
+  setStatus("Select a cell.", "");
+  render();
+}
+
+/* ---------- RENDER ---------- */
 function render(){
   boardEl.innerHTML = "";
 
   for(let i=0;i<81;i++){
-    const ch = grid[i];
+    const v = grid[i];
     const cell = document.createElement("div");
     cell.className = "cell " + (fixed[i] ? "fixed" : "editable");
     cell.dataset.idx = String(i);
-    cell.textContent = ch === "0" ? "" : ch;
+    cell.textContent = v === 0 ? "" : String(v);
 
-    // bold 3x3 borders
     const {r,c} = idxToRC(i);
-    if(c === 2 || c === 5) cell.classList.add("boxBorderR");
-    if(r === 2 || r === 5) cell.classList.add("boxBorderB");
+    if(c === 2 || c === 5) cell.classList.add("thickR");
+    if(r === 2 || r === 5) cell.classList.add("thickB");
 
     if(i === selected) cell.classList.add("selected");
 
@@ -124,53 +170,44 @@ function render(){
 }
 
 function selectCell(i){
-  hideModal();
+  hideWin();
   selected = i;
-  if(fixed[i]){
-    setStatus("That number is fixed.", "");
-  }else{
-    setStatus("Enter a number (1–9) or erase.", "");
-  }
+  if(fixed[i]) setStatus("That number is fixed.", "");
+  else setStatus("Enter 1–9 or erase.", "");
   render();
 }
 
 function applyHighlights(){
   const cells = Array.from(boardEl.children);
+  cells.forEach(el => el.classList.remove("same","conflict"));
 
-  // Clear classes
-  cells.forEach(el => {
-    el.classList.remove("same","conflict");
-  });
-
-  // Same-number highlight
   if(selected >= 0){
     const val = grid[selected];
-    if(val !== "0"){
-      cells.forEach((el, i) => {
-        if(grid[i] === val) el.classList.add("same");
-      });
+    if(val !== 0){
+      for(let i=0;i<81;i++){
+        if(grid[i] === val) cells[i].classList.add("same");
+      }
     }
   }
 
-  // Conflicts
-  const conflicts = findConflicts();
-  conflicts.forEach(i => cells[i].classList.add("conflict"));
+  const bad = findConflicts(grid);
+  bad.forEach(i => cells[i].classList.add("conflict"));
 }
 
-function findConflicts(){
+function findConflicts(board){
   const bad = new Set();
 
   // rows
   for(let r=0;r<9;r++){
-    const seen = new Map(); // val -> indices
+    const seen = new Map();
     for(let c=0;c<9;c++){
       const i = rcToIdx(r,c);
-      const v = grid[i];
-      if(v === "0") continue;
+      const v = board[i];
+      if(v === 0) continue;
       if(!seen.has(v)) seen.set(v, []);
       seen.get(v).push(i);
     }
-    for(const [v, arr] of seen.entries()){
+    for(const arr of seen.values()){
       if(arr.length > 1) arr.forEach(i => bad.add(i));
     }
   }
@@ -180,12 +217,12 @@ function findConflicts(){
     const seen = new Map();
     for(let r=0;r<9;r++){
       const i = rcToIdx(r,c);
-      const v = grid[i];
-      if(v === "0") continue;
+      const v = board[i];
+      if(v === 0) continue;
       if(!seen.has(v)) seen.set(v, []);
       seen.get(v).push(i);
     }
-    for(const [v, arr] of seen.entries()){
+    for(const arr of seen.values()){
       if(arr.length > 1) arr.forEach(i => bad.add(i));
     }
   }
@@ -197,13 +234,13 @@ function findConflicts(){
       for(let r=br*3;r<br*3+3;r++){
         for(let c=bc*3;c<bc*3+3;c++){
           const i = rcToIdx(r,c);
-          const v = grid[i];
-          if(v === "0") continue;
+          const v = board[i];
+          if(v === 0) continue;
           if(!seen.has(v)) seen.set(v, []);
           seen.get(v).push(i);
         }
       }
-      for(const [v, arr] of seen.entries()){
+      for(const arr of seen.values()){
         if(arr.length > 1) arr.forEach(i => bad.add(i));
       }
     }
@@ -212,7 +249,8 @@ function findConflicts(){
   return bad;
 }
 
-function setCellValue(v){
+/* ---------- INPUT ---------- */
+function setValue(val){
   if(selected < 0){
     setStatus("Select a cell first.", "bad");
     return;
@@ -221,50 +259,49 @@ function setCellValue(v){
     setStatus("That number is fixed.", "bad");
     return;
   }
-  grid[selected] = v;
+
+  grid[selected] = val;
   render();
   checkWin();
 }
 
-function eraseCell(){
-  setCellValue("0");
+function erase(){
+  setValue(0);
 }
 
 function checkWin(){
-  // Must be filled
-  if(grid.includes("0")) return;
+  // all filled
+  for(const v of grid) if(v === 0) return;
 
-  // Must have no conflicts
-  if(findConflicts().size > 0) return;
-
-  // Must match solution exactly
-  const cur = grid.join("");
-  if(cur === currentPuzzle.solution){
-    setStatus("Solved!", "ok");
-    showModal();
-  }else{
-    // Filled but not correct
-    setStatus("Not quite right — check for mistakes.", "bad");
+  // no conflicts
+  if(findConflicts(grid).size > 0){
+    setStatus("There are conflicts to fix.", "bad");
+    return;
   }
+
+  // must match solution
+  for(let i=0;i<81;i++){
+    if(grid[i] !== solution[i]) {
+      setStatus("Not quite — check a row/column/box.", "bad");
+      return;
+    }
+  }
+
+  setStatus("Solved!", "ok");
+  showWin();
 }
 
-function resetToStart(){
-  grid = currentPuzzle.puzzle.split("");
-  fixed = grid.map(ch => ch !== "0");
+/* ---------- RESET / NEW ---------- */
+function resetPuzzle(){
+  hideWin();
+  grid = puzzleStart.slice();
+  fixed = grid.map(v => v !== 0);
   selected = -1;
-  hideModal();
-  setStatus("Puzzle reset.", "");
+  setStatus("Reset to starting puzzle.", "");
   render();
 }
 
-function newPuzzle(){
-  hideModal();
-  pickPuzzle();
-  setStatus("New puzzle loaded.", "");
-  render();
-}
-
-// Clipboard
+/* ---------- CLIPBOARD ---------- */
 async function copyToClipboard(text){
   if(navigator.clipboard?.writeText){
     await navigator.clipboard.writeText(text);
@@ -282,22 +319,22 @@ async function copyToClipboard(text){
   return ok;
 }
 
-// Events
-btnStart.addEventListener("click", () => showScreen(screenTitle));
-btnPlay.addEventListener("click", () => {
-  showScreen(screenGame);
-  newPuzzle();
+/* ---------- EVENTS ---------- */
+startBtn.addEventListener("click", () => showScreen(title));
+playBtn.addEventListener("click", () => {
+  showScreen(game);
+  generateNewMedium();
 });
 
-btnNew.addEventListener("click", () => newPuzzle());
-btnReset.addEventListener("click", () => resetToStart());
+newBtn.addEventListener("click", () => generateNewMedium());
+resetBtn.addEventListener("click", () => resetPuzzle());
 
 padBtns.forEach(b => {
-  b.addEventListener("click", () => setCellValue(b.dataset.num));
+  b.addEventListener("click", () => setValue(Number(b.dataset.n)));
 });
-btnErase.addEventListener("click", () => eraseCell());
+eraseBtn.addEventListener("click", () => erase());
 
-btnCopy.addEventListener("click", async () => {
+copyBtn.addEventListener("click", async () => {
   try{
     const ok = await copyToClipboard(PASSCODE);
     copyMsg.textContent = ok ? "Copied to clipboard." : "Copy failed — copy manually.";
@@ -306,41 +343,33 @@ btnCopy.addEventListener("click", async () => {
   }
 });
 
-btnBackTitle.addEventListener("click", () => {
-  hideModal();
-  showScreen(screenTitle);
+backTitleBtn.addEventListener("click", () => {
+  hideWin();
+  showScreen(title);
 });
 
-btnPlayAgain.addEventListener("click", () => {
-  hideModal();
-  newPuzzle();
+playAgainBtn.addEventListener("click", () => {
+  hideWin();
+  generateNewMedium();
 });
 
-// Keyboard controls
+// keyboard
 window.addEventListener("keydown", (e) => {
-  if(!screenGame.classList.contains("active")) return;
+  if(!game.classList.contains("active")) return;
   if(winModal.classList.contains("show")) return;
 
-  const key = e.key;
+  const k = e.key;
 
-  // Numbers
-  if(key >= "1" && key <= "9"){
-    setCellValue(key);
-    return;
-  }
-  if(key === "Backspace" || key === "Delete"){
-    eraseCell();
-    return;
-  }
+  if(k >= "1" && k <= "9"){ setValue(Number(k)); return; }
+  if(k === "Backspace" || k === "Delete"){ erase(); return; }
 
-  // Arrow movement
   if(selected < 0) return;
   const {r,c} = idxToRC(selected);
-  if(key === "ArrowUp" && r > 0) selectCell(rcToIdx(r-1,c));
-  if(key === "ArrowDown" && r < 8) selectCell(rcToIdx(r+1,c));
-  if(key === "ArrowLeft" && c > 0) selectCell(rcToIdx(r,c-1));
-  if(key === "ArrowRight" && c < 8) selectCell(rcToIdx(r,c+1));
+  if(k === "ArrowUp" && r > 0) selectCell(rcToIdx(r-1,c));
+  if(k === "ArrowDown" && r < 8) selectCell(rcToIdx(r+1,c));
+  if(k === "ArrowLeft" && c > 0) selectCell(rcToIdx(r,c-1));
+  if(k === "ArrowRight" && c < 8) selectCell(rcToIdx(r,c+1));
 });
 
-// Boot
-showScreen(screenIntro);
+/* ---------- BOOT ---------- */
+showScreen(intro);
