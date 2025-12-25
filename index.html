@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Frostgrid Sudoku</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- INTRO -->
+  <section id="screenIntro" class="screen intro active">
+    <button id="btnStart" class="btn primary big">Start Challenge</button>
+  </section>
+
+  <!-- TITLE -->
+  <section id="screenTitle" class="screen title">
+    <div class="card">
+      <h1>Frostgrid Sudoku</h1>
+      <p class="sub">
+        A calm mind cuts through the cold. Fill every row, column, and 3×3 box with 1–9—no repeats.
+      </p>
+      <div class="rules">
+        <div class="rule"><b>Difficulty:</b> Medium</div>
+        <div class="rule"><b>Controls:</b> Tap cells + keypad</div>
+      </div>
+      <button id="btnPlay" class="btn primary">Play Game</button>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="screenGame" class="screen game">
+    <header class="topbar">
+      <div class="pill">
+        <div class="label">Status</div>
+        <div id="status" class="value">Select a cell.</div>
+      </div>
+
+      <div class="actions">
+        <button id="btnNew" class="btn ghost">New Puzzle</button>
+        <button id="btnReset" class="btn ghost">Reset</button>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="panel">
+        <div id="board" class="board" aria-label="Sudoku board"></div>
+
+        <div class="pad">
+          <div class="padRow">
+            <button class="padBtn" data-num="1">1</button>
+            <button class="padBtn" data-num="2">2</button>
+            <button class="padBtn" data-num="3">3</button>
+            <button class="padBtn" data-num="4">4</button>
+            <button class="padBtn" data-num="5">5</button>
+          </div>
+          <div class="padRow">
+            <button class="padBtn" data-num="6">6</button>
+            <button class="padBtn" data-num="7">7</button>
+            <button class="padBtn" data-num="8">8</button>
+            <button class="padBtn" data-num="9">9</button>
+            <button id="btnErase" class="padBtn erase">⌫</button>
+          </div>
+        </div>
+
+        <div class="tiny">
+          Tip: On desktop you can type 1–9, Backspace to erase, and use arrow keys to move.
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <!-- WIN MODAL -->
+  <div id="winModal" class="modal" aria-hidden="true">
+    <div class="modalBox">
+      <h2>Blue Ornament Path passcode revealed!</h2>
+      <p>You completed the Sudoku.</p>
+
+      <div class="codeBox">
+        <div class="codeLabel">PASSCODE</div>
+        <div class="codeValue">GIFTSGIVENINWAITING</div>
+      </div>
+
+      <div class="modalBtns">
+        <button id="btnCopy" class="btn primary">Copy Code</button>
+        <button id="btnBackTitle" class="btn ghost">Back to Title</button>
+        <button id="btnPlayAgain" class="btn ghost">New Puzzle</button>
+      </div>
+
+      <div id="copyMsg" class="copyMsg"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
